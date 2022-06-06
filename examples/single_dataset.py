@@ -13,13 +13,7 @@ import folium
 from folium.plugins import Draw
 from streamlit_folium import st_folium
 
-# class Themes(str, Enum):
-#     t1 = "Administrative areas and boundaries"
-#     t2 = "Biology"
-#     t3 = "Geoscience"
-#     t4 = "Hydrography"
-#     t5 = "Infrastucture"
-#     t6 = "Oceanography"
+## Auxiliar classes ##
 
 class Types(str, Enum):
     t1 = "Acoustic"
@@ -80,45 +74,6 @@ class Frequency(str, Enum):
     f4 = "quarterly"
     f5 = "anually"
 
-class GeneralInfo(BaseModel):
-    title: str = Field(description="Title for the dataset. Should be not more than several words, short sentence")
-    description: str = Field(description = "Description of the dataset shall cover summary information on the why, what, and how of the dataset. This should include following elements. Purpose of the data collection; Used methods and/or protocols; Broad spatial coverage; Time period of data collection; Types of data; Taxonomic coverage (if applicable); Other relevant descriptive information; Note: This replicates some field contents – but provides important summary information in one place")
-    # theme: Set[Themes] = Field(
-    #     ..., description="Allows multiple themes."
-    # )
-    
-    type: Set[Types] = Field(
-        ..., description="Allows multiple themes."
-    )
-    keywords: str
-    license: Set[Licenses]
-    publication_statement:Optional[str]
-    constraints:Optional[str]
-    release_date:Optional[datetime]
-    citation:Optional[str]
-    attribution:Optional[str]
-    lineage:Optional[str]
-
-class RolesOrgLevel(BaseModel):
-    creator:Optional[str]
-    owner:Optional[str]
-    manager:Optional[str]
-    provider:str
-    provider_contact:str    
-
-class IdentificationAndVersioning(BaseModel):  ## includes url
-    identifier: Optional[str]
-    version: Optional[str]
-    date_created: Optional[datetime]
-    date_updated: Optional[datetime]
-    maintenance_freq: Optional[Frequency]
-    organisation_url: Optional[str]
-    data_url: Optional[str]
-
-class TempCoverage(BaseModel):
-    start_datetime: datetime
-    end_datetime: datetime
-
 class Geographic_sites(str, Enum):
     auckland = "Auckland"
     wellington = "Wellington"
@@ -157,42 +112,125 @@ class DrawInTheMap(BaseModel):
         ..., description="Draw spatial coverage in the map and add any observation in the box provided."
     )
 
-class BoundingBox(BaseModel):
+## Main Classes
+
+class GeneralInfo(BaseModel):
+    title: str = Field(description="Title for the dataset. Should be not more than several words, short sentence")
+    description: str = Field(description = "Description of the dataset shall cover summary information on the why, what, and how of the dataset. This should include following elements. Purpose of the data collection; Used methods and/or protocols; Broad spatial coverage; Time period of data collection; Types of data; Taxonomic coverage (if applicable); Other relevant descriptive information; Note: This replicates some field contents – but provides important summary information in one place")
+    # theme: Set[Themes] = Field(
+    #     ..., description="Allows multiple themes."
+    # )
+    
+    type: Set[Types] = Field(
+        ..., description="Allows multiple themes."
+    )
+    keywords: str
+    license: Set[Licenses]
+    publication_statement:Optional[str]
+    constraints:Optional[str]
+    release_date:Optional[datetime]
+    citation:Optional[str]
+    attribution:Optional[str]
+    lineage:Optional[str]
+
+class RolesOrgLevel(BaseModel):
+    creator:Optional[str]
+    owner:Optional[str]
+    manager:Optional[str]
+    provider:str
+    provider_contact:str    
+
+class IdentificationAndVersioning(BaseModel):  ## includes url
+    identifier: Optional[str]
+    version: Optional[str]
+    date_created: Optional[datetime]
+    date_updated: Optional[datetime]
+    maintenance_freq: Optional[Frequency]
+    organisation_url: Optional[str]
+    data_url: Optional[str]
+
+class SpatialAndTemporalCoverage(BaseModel):
+    start_datetime = datetime
+    end_datetime = datetime
     geographic_region: Set[Geographic_sites] = Field(
         ..., description="Allows multiple sites from a set."
     )
     bounding_box: Union[DrawInTheMap, Spatial_coverage_dec, Spatial_coverage_dms]
 
+class GenerationAndMethods(BaseModel):
+    generation_method: Optional[str] = Field(description="This field allows for a text-based/human readable description of the method used for generating the dataset. The content of this element would be similar to a description of sampling procedures found in the methods section of a journal article.")
+    collection_instrument_type:	Optional[str] = Field(description="High level instrument category according to agreed vocabulary. This field enables to filter data collected in a similar technical way")
+    collection_instrument:	Optional[str] = Field(description="Instrument make / model used in data collection.")
+    collection_platform_category: Optional[str] = Field(description="High level platform type used for data collection, e.g. vessel, AUV, sensor platform to agreed vocabulary. This field enables to filter data collected in a similar technical way.")
+    collection_platform: Optional[str] = Field(description="Specifics of platform used for data collection, e.g. make/model, vessel name, etc")
+
+class FormatAndStorage(BaseModel):
+    format_type: Optional[str] = Field(description="General description of the format of the dataset according to an agreed vocabulary: ascii, binary, …")
+    format_spec: Optional[str] = Field(description="Specific description of data format for dataset; for example specific manufacture binary format reference")
+
+class Content(BaseModel):
+    parameter_category: Optional[str] = Field(description="This field describes in high level categories, the environmental parameters included with in dataset.High level parameter type/ category that applies to parameter to agreed vocabulary. This field enables to filter data of similar type")
+    parameter: Optional[str] = Field(description="This field describes the environmental parameters included with in dataset (e.g. ‘water temperature’)")
+
+
 
 # class Content:
+with st.form(key='my_form'):
+    st.subheader("File")
+    uploaded_files = st.file_uploader("Upload a file", accept_multiple_files=False)
+    if uploaded_files:
+        print(uploaded_files.name)
+    #   st.write("Filename: ", uploaded_file.name)
 
-st.subheader("General Info")
-data1 = sp.pydantic_input(
-    key="my_form1", model=GeneralInfo, group_optional_fields="expander"
+    st.subheader("General Information")
+    data1 = sp.pydantic_input(
+        key="my_form1", model=GeneralInfo, group_optional_fields="expander"
+        )
+
+    st.subheader("Roles/contacts (organisation level)")
+    data2 = sp.pydantic_input(
+        key="my_form2", model=RolesOrgLevel, group_optional_fields="expander"
     )
 
-st.subheader("RolesOrgLevel")
-data2 = sp.pydantic_input(
-    key="my_form2", model=RolesOrgLevel, group_optional_fields="expander"
-)
+    st.subheader("Identification / Versioning")
+    data3 = sp.pydantic_input(
+        key="my_form3", model=IdentificationAndVersioning, group_optional_fields="expander"
+    )
 
-st.subheader("IdentificationAndVersioning")
-data3 = sp.pydantic_input(
-    key="my_form3", model=IdentificationAndVersioning, group_optional_fields="expander"
-)
+    st.subheader("Spatial and Temporal Coverage")
+    data4 =  sp.pydantic_input(key="union_input", model=SpatialAndTemporalCoverage, group_optional_fields="expander")
+    if 'Observation' in dict(data4)['bounding_box'].keys():
+        # https://share.streamlit.io/randyzwitch/streamlit-folium/examples/streamlit_app.py
+        m = folium.Map(location=[39.949610, -75.150282], zoom_start=5)
+        Draw(export=True).add_to(m)
 
-st.subheader("Temporal Coverage")
-data4 = sp.pydantic_input(
-    key="my_form4", model=TempCoverage, group_optional_fields="expander"
-)
+        output = st_folium(m, width = 700, height=500)
+        st.write(output['last_active_drawing'])
 
-st.subheader("Spatial Coverage")
-data5 =  sp.pydantic_input(key="union_input", model=BoundingBox, group_optional_fields="expander")
-print(dict(data5))
-if 'Observation' in dict(data5)['bounding_box'].keys():
-    # https://share.streamlit.io/randyzwitch/streamlit-folium/examples/streamlit_app.py
-    m = folium.Map(location=[39.949610, -75.150282], zoom_start=5)
-    Draw(export=True).add_to(m)
+    st.subheader("Generations / Methods")
+    data5 = sp.pydantic_input(
+        key="my_form5", model=GenerationAndMethods, group_optional_fields="expander"
+    )
 
-    output = st_folium(m, width = 700, height=500)
-    st.write(output['last_active_drawing'])
+    st.subheader("Format / Storage")
+    data6 = sp.pydantic_input(
+        key="my_form6", model=FormatAndStorage, group_optional_fields="expander"
+    )
+    st.subheader("Content")
+    data7 = sp.pydantic_input(
+        key="my_form7", model=Content, group_optional_fields="expander"
+    )
+
+    # Every form must have a submit button.
+    submitted = st.form_submit_button("Submit")
+    if submitted:
+        st.write("generalinfo", data1, "spatialtemp", data4)
+
+if submitted:
+    if any(data1):
+        print(data1)
+        st.warning('No selectboxes selected!')
+        # st.header('You selected some checkboxes!')
+    else:
+        st.warning('No selectboxes selected!')
+
