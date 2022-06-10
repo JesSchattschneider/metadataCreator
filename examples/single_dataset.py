@@ -1,6 +1,5 @@
-from datetime import datetime, time
-from pickle import TRUE
-from typing import Optional, List, Set, Union
+from datetime import datetime
+from typing import Optional, Set, Union
 from datetime import datetime
 from numpy import double
 import json
@@ -262,14 +261,16 @@ if submitted:
     res = {**dict(data0), **dict(data1), **dict(data2), **dict(data3), 
     **dict(data4), **dict(data5), **dict(data6), **dict(data7)}
     ## check if mandatory fields were informed
-    for field in fields:
-        if all([res[field] == 0 for field in fields]):
-            st.download_button(
+    if all([res[field] != "" and res[field] is not None for field in fields]):
+        st.download_button(
             label="Download data as json",
             data=json.dumps(res, default=str),
             file_name='geospatial_metadata.json')
-            st.success('Success')
-        else:
-            st.snow()
-            st.error('No value selected for mandatory field: ' + field)
+        st.success('Success')
+    else:
+        for fieldx in fields:
+            if res[fieldx] == "" or res[fieldx] is None:
+                print(fieldx)
+                # st.snow()
+                st.error('No value selected for mandatory field: ' + fieldx)
    
