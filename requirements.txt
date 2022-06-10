@@ -3,4 +3,3 @@ streamlit_pydantic
 pydantic
 folium
 streamlit_folium
-json
