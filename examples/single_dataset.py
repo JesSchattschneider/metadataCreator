@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, time
 from pickle import TRUE
 from typing import Optional, List, Set, Union
 from datetime import datetime
 from numpy import double
+import json
 
 import streamlit as st
 from pydantic import BaseModel, Field
@@ -13,7 +14,11 @@ import folium
 from folium.plugins import Draw
 from streamlit_folium import st_folium
 
-## Auxiliar classes ##
+'''
+############################
+#### Auxiliary classes #####
+############################
+'''
 
 class Types(str, Enum):
     t1 = "Acoustic"
@@ -108,22 +113,24 @@ class Spatial_coverage_dms(BaseModel):
     crs: CRS
 
 class DrawInTheMap(BaseModel):
-    Observation: str = Field(
+    observation: str = Field(
         ..., description="Draw spatial coverage in the map and add any observation in the box provided."
     )
 
-## Main Classes
+'''
+############################
+#### Main Classes #####
+############################
+'''
+
+class UploadedFile(BaseModel):
+    file: str
 
 class GeneralInfo(BaseModel):
     title: str = Field(description="Title for the dataset. Should be not more than several words, short sentence")
     description: str = Field(description = "Description of the dataset shall cover summary information on the why, what, and how of the dataset. This should include following elements. Purpose of the data collection; Used methods and/or protocols; Broad spatial coverage; Time period of data collection; Types of data; Taxonomic coverage (if applicable); Other relevant descriptive information; Note: This replicates some field contents – but provides important summary information in one place")
-    # theme: Set[Themes] = Field(
-    #     ..., description="Allows multiple themes."
-    # )
-    
-    type: Set[Types] = Field(
-        ..., description="Allows multiple themes."
-    )
+    # theme: to do    
+    type: Set[Types] = Field(description="Allows multiple themes.")
     keywords: str
     license: Set[Licenses]
     publication_statement:Optional[str]
@@ -150,8 +157,8 @@ class IdentificationAndVersioning(BaseModel):  ## includes url
     data_url: Optional[str]
 
 class SpatialAndTemporalCoverage(BaseModel):
-    start_datetime = datetime
-    end_datetime = datetime
+    start_datetime: datetime
+    end_datetime: datetime
     geographic_region: Set[Geographic_sites] = Field(
         ..., description="Allows multiple sites from a set."
     )
@@ -173,64 +180,96 @@ class Content(BaseModel):
     parameter: Optional[str] = Field(description="This field describes the environmental parameters included with in dataset (e.g. ‘water temperature’)")
 
 
+'''
+############################
+#### Page Content #####
+############################
+'''
 
-# class Content:
-with st.form(key='my_form'):
-    st.subheader("File")
-    uploaded_files = st.file_uploader("Upload a file", accept_multiple_files=False)
-    if uploaded_files:
-        print(uploaded_files.name)
-    #   st.write("Filename: ", uploaded_file.name)
+## Section: Upload dataset
+st.header("1. Upload dataset")
+data0 = UploadedFile(file="") ## populate data0 first
+uploaded_file = st.file_uploader("Upload file", accept_multiple_files=False)
+if uploaded_file: ## if file is uploaded update data0
+    st.write("Filename: ", uploaded_file.name)
+    data0 = UploadedFile(file=uploaded_file.name)
 
-    st.subheader("General Information")
-    data1 = sp.pydantic_input(
-        key="my_form1", model=GeneralInfo, group_optional_fields="expander"
-        )
-
-    st.subheader("Roles/contacts (organisation level)")
-    data2 = sp.pydantic_input(
-        key="my_form2", model=RolesOrgLevel, group_optional_fields="expander"
+## Section: General Information
+st.header("2. General Information")
+data1 = sp.pydantic_input(
+    key="my_form1", model=GeneralInfo, group_optional_fields="expander"
     )
 
-    st.subheader("Identification / Versioning")
-    data3 = sp.pydantic_input(
-        key="my_form3", model=IdentificationAndVersioning, group_optional_fields="expander"
-    )
+## Section: Roles/contacts (organisation level)
+st.header("3. Roles/contacts (organisation level)")
+data2 = sp.pydantic_input(
+    key="my_form2", model=RolesOrgLevel, group_optional_fields="expander"
+)
 
-    st.subheader("Spatial and Temporal Coverage")
-    data4 =  sp.pydantic_input(key="union_input", model=SpatialAndTemporalCoverage, group_optional_fields="expander")
-    if 'Observation' in dict(data4)['bounding_box'].keys():
-        # https://share.streamlit.io/randyzwitch/streamlit-folium/examples/streamlit_app.py
-        m = folium.Map(location=[39.949610, -75.150282], zoom_start=5)
-        Draw(export=True).add_to(m)
+## Section: Identification / Versioning
+st.header("4. Identification / Versioning")
+data3 = sp.pydantic_input(
+    key="my_form3", model=IdentificationAndVersioning, group_optional_fields="expander"
+)
 
-        output = st_folium(m, width = 700, height=500)
+## Section: Spatial and Temporal Coverage
+st.header("5. Spatial and Temporal Coverage")
+data4 =  sp.pydantic_input(key="union_input", model=SpatialAndTemporalCoverage, group_optional_fields="expander")
+
+### Adding map (reactive) using folium
+if 'observation' in dict(data4)['bounding_box'].keys():
+    m = folium.Map(location=[-41.178654, -186.328125], zoom_start=5)
+    Draw(export=True).add_to(m)
+    output = st_folium(m, width = 700, height=500)
+    if output['last_active_drawing'] is not None:
         st.write(output['last_active_drawing'])
+        data4['bounding_box'] = ({**dict(data4['bounding_box']),**dict(output['last_active_drawing'])}) # update data4
 
-    st.subheader("Generations / Methods")
-    data5 = sp.pydantic_input(
-        key="my_form5", model=GenerationAndMethods, group_optional_fields="expander"
-    )
+## Section: Generations / Methods
+st.header("6. Generations / Methods")
+data5 = sp.pydantic_input(
+    key="my_form5", model=GenerationAndMethods, group_optional_fields="expander"
+)
 
-    st.subheader("Format / Storage")
-    data6 = sp.pydantic_input(
-        key="my_form6", model=FormatAndStorage, group_optional_fields="expander"
-    )
-    st.subheader("Content")
-    data7 = sp.pydantic_input(
-        key="my_form7", model=Content, group_optional_fields="expander"
-    )
+## Section: Format / Storage
+st.header("7. Format / Storage")
+data6 = sp.pydantic_input(
+    key="my_form6", model=FormatAndStorage, group_optional_fields="expander"
+)
 
-    # Every form must have a submit button.
-    submitted = st.form_submit_button("Submit")
-    if submitted:
-        st.write("generalinfo", data1, "spatialtemp", data4)
+## Section: Content
+st.header("8. Content")
+data7 = sp.pydantic_input(
+    key="my_form7", model=Content, group_optional_fields="expander"
+)
 
+## Submit button.
+submitted = st.button("Submit")
+
+'''
+############################
+#### Validation #####
+############################
+'''
+
+## mandatory fields
+fields = ["file","title", "description", "type", "keywords", "license", 
+    "provider", "provider_contact", "start_datetime", "end_datetime",
+    "geographic_region", "bounding_box"]
+
+## If submit button is clicked combine all inputs:
 if submitted:
-    if any(data1):
-        print(data1)
-        st.warning('No selectboxes selected!')
-        # st.header('You selected some checkboxes!')
-    else:
-        st.warning('No selectboxes selected!')
-
+    res = {**dict(data0), **dict(data1), **dict(data2), **dict(data3), 
+    **dict(data4), **dict(data5), **dict(data6), **dict(data7)}
+    ## check if mandatory fields were informed
+    for field in fields:
+        if all([res[field] == 0 for field in fields]):
+            st.download_button(
+            label="Download data as json",
+            data=json.dumps(res, default=str),
+            file_name='geospatial_metadata.json')
+            st.success('Success')
+        else:
+            st.snow()
+            st.error('No value selected for mandatory field: ' + field)
+   
