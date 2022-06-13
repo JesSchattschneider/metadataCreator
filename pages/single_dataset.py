@@ -118,5 +118,5 @@ if submitted:
         st.warning("There are some required information missing. Please, provide information for the fields listed below and re-submit the form.")
         for field in fields:
             if res[field] == "" or res[field] is None or len(res[field]) == 0:
-                st.error('No value selected for mandatory field: ' + field)
+                st.error('Required field: ' + field)
    

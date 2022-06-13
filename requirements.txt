@@ -1,4 +1,6 @@
 streamlit==1.8.0
+protobuf~=3.19.0
+click<=8.0.4
 streamlit_pydantic
 pydantic
 folium
