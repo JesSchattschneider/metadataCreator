@@ -16,7 +16,7 @@ image = Image.open(path_of_image)
 st.set_page_config(page_title="Geospatial metadata generator", page_icon=":magic_wand:")
 st.sidebar.image(image, width = 5, use_column_width = True)
 st.sidebar.title("Auto-generate metadata to geospatial data.")
-st.sidebar.markdown("Upload a geospatial file and fill out the form to generate a JSON document with the metadata assoaciated to the uploaded file.")
+st.sidebar.markdown("Upload a geospatial file and fill out the form to generate a metadata file (JSON or csv) following national standards for the uploaded file.")
 st.markdown(f'<h1 style="background-color:#00549e ;color:#ffffff;font-size:28px;border-radius:1%;">{"Geospatial metadata generator"}</h1>', unsafe_allow_html=True)
 
 ## Select default form
